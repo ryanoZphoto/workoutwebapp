@@ -2,6 +2,13 @@ import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 
 const muscleGroups = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Legs'];
+const exerciseOptions = {
+  Chest: ['Bench Press', 'Push Ups', 'Chest Fly'],
+  Back: ['Pull Ups', 'Bent Over Row', 'Deadlift'],
+  Shoulders: ['Overhead Press', 'Lateral Raise', 'Front Raise'],
+  Biceps: ['Bicep Curl', 'Hammer Curl'],
+  Legs: ['Squats', 'Lunges', 'Leg Press']
+};
 
 export default function WorkoutLogger() {
   const { weeklyData, setWeeklyData } = useContext(AppContext);
@@ -94,11 +101,17 @@ export default function WorkoutLogger() {
 
         <input
           name="name"
+          list={`${current.group}-exercises`}
           placeholder="Exercise"
           value={current.name}
           onChange={handleInputChange}
           className="bg-gray-700 text-white p-2 rounded w-full"
         />
+        <datalist id={`${current.group}-exercises`}>
+          {(exerciseOptions[current.group] || []).map((ex) => (
+            <option key={ex} value={ex} />
+          ))}
+        </datalist>
         <input
           name="sets"
           placeholder="Sets"
