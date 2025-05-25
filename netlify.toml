@@ -1,7 +1,7 @@
+spaces/workoutwebapp/netlify.toml
 [build]
-  base = "/"
-  publish = "build"
   command = "npm run build"
+  publish = "build"
 
 [build.environment]
   NODE_VERSION = "18"
