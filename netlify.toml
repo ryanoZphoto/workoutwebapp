@@ -1,9 +1,6 @@
-# Create a proper netlify.toml file
-cat > netlify.toml << 'EOF'
-[build]
+echo '[build]
   command = "npm run build"
   publish = "build"
 
 [build.environment]
-  NODE_VERSION = "18"
-EOF
+  NODE_VERSION = "18"' > netlify.toml
