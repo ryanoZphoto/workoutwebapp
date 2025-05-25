@@ -1,7 +1,9 @@
-/workoutwebapp/netlify.toml
+# Create a proper netlify.toml file
+cat > netlify.toml << 'EOF'
 [build]
   command = "npm run build"
   publish = "build"
 
 [build.environment]
   NODE_VERSION = "18"
+EOF
