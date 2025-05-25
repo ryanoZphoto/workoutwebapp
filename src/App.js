@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import React from 'react';
 import './styles.css';
 // Entry point and layout
 import WorkoutLogger from "./components/WorkoutLogger";
