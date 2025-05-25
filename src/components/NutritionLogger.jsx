@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
+import { AppContext } from '../context/AppContext';
 
 const foodData = {
   'Eggs (1 large)': { calories: 78, protein: 6, carbs: 0.6, fat: 5 },
@@ -8,7 +9,6 @@ const foodData = {
   'Broccoli (1 cup)': { calories: 55, protein: 4, carbs: 11, fat: 0.3 },
   'Apple (medium)': { calories: 95, protein: 0.5, carbs: 25, fat: 0.3 },
 };
-import { AppContext } from '../context/AppContext';
 
 export default function NutritionLogger() {
   const { weeklyData, setWeeklyData } = useContext(AppContext);
