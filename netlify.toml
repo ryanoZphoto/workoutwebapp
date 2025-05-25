@@ -1,4 +1,4 @@
-spaces/workoutwebapp/netlify.toml
+/workoutwebapp/netlify.toml
 [build]
   command = "npm run build"
   publish = "build"
