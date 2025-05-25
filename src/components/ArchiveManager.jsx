@@ -70,8 +70,8 @@ export default function ArchiveManager() {
 
   const handleClear = () => {
     if (locked) return;
-    const confirm = window.confirm('Delete all archived weeks? This cannot be undone.');
-    if (confirm) {
+    const confirmed = window.confirm('Delete all archived weeks? This cannot be undone.');
+    if (confirmed) {
       localStorage.removeItem('fitnessArchive');
       alert('Archive cleared.');
     }
