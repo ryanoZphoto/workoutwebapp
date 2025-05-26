@@ -9,7 +9,7 @@
 
 # Build environment
 [build.environment]
-  NODE_VERSION = "22.x"
+  NODE_VERSION = "20.x"
 
 # Redirects
 [[redirects]]
