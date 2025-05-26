@@ -60,8 +60,22 @@ export default function WorkoutRecommender() {
   const { weeklyData, setWeeklyData } = useContext(AppContext);
   const [storageInfo, setStorageInfo] = useState(null);
   const [debugInfo, setDebugInfo] = useState(null);
+  const [logs, setLogs] = useState([]);
   
-  // Add effect to detect storage mechanism and fix data issues
+  // Enhanced logging function
+  const logMessage = (message, data = null, type = 'info') => {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      message,
+      data: data ? JSON.stringify(data) : null,
+      type
+    };
+    
+    console[type](message, data);
+    setLogs(prevLogs => [logEntry, ...prevLogs].slice(0, 50)); // Keep only last 50 logs
+  };
+  
+  // Fix data structure issues related to hydration entries
   useEffect(() => {
     try {
       // Check what storage mechanisms are available and in use
@@ -75,10 +89,29 @@ export default function WorkoutRecommender() {
       
       setStorageInfo(storageDetails);
       
-      // Handle potential data structure issues
+      // Specifically look for and fix the error #31 - objects with {day, amount, timestamp}
       if (weeklyData) {
         let hasDataIssues = false;
         let dataInfo = { structure: {} };
+        let needsHydrationFix = false;
+        
+        // Check for direct hydration objects that might cause React error #31
+        if (weeklyData.hydration && typeof weeklyData.hydration === 'object' && !Array.isArray(weeklyData.hydration)) {
+          if (weeklyData.hydration.day || weeklyData.hydration.amount || weeklyData.hydration.timestamp) {
+            logMessage('Found problematic hydration object that could cause Error #31', weeklyData.hydration, 'warn');
+            needsHydrationFix = true;
+          }
+        }
+        
+        // Check for array of hydration objects
+        if (Array.isArray(weeklyData.hydration)) {
+          weeklyData.hydration.forEach((entry, index) => {
+            if (entry && typeof entry === 'object' && (entry.day || entry.amount || entry.timestamp)) {
+              logMessage(`Found problematic hydration entry at index ${index}`, entry, 'warn');
+              needsHydrationFix = true;
+            }
+          });
+        }
         
         // Inspect workouts structure
         if (weeklyData.workouts) {
@@ -89,47 +122,66 @@ export default function WorkoutRecommender() {
             if (Array.isArray(value)) {
               value.forEach((item, index) => {
                 if (item && typeof item === 'object' && !React.isValidElement(item)) {
-                  // This is intended to catch objects that might cause React element issues
                   dataInfo[`workout_${key}_${index}`] = Object.keys(item);
                 }
               });
-            } else {
+            } else if (typeof value === 'object' && value !== null) {
               dataInfo[`workout_${key}_invalid`] = typeof value;
               hasDataIssues = true;
+              logMessage(`Found invalid workout entry for ${key}`, value, 'warn');
             }
           });
         }
         
-        setDebugInfo({ hasDataIssues, dataInfo });
+        setDebugInfo({ hasDataIssues, needsHydrationFix, dataInfo });
         
-        // Attempt to fix data structure if needed
-        if (hasDataIssues && weeklyData.workouts) {
-          console.log("Attempting to fix data structure issues...");
+        // Fix the data structure issues
+        if (hasDataIssues || needsHydrationFix) {
+          logMessage("Attempting to fix data structure issues...", null, 'info');
           const fixedData = { ...weeklyData };
           
+          // Fix hydration issue - convert object to number or initialize properly
+          if (needsHydrationFix) {
+            // Reset hydration to be a simple number
+            fixedData.hydration = 0;
+            logMessage("Reset hydration data to prevent Error #31", null, 'info');
+          }
+          
           // Ensure workouts is an object with arrays
-          Object.entries(fixedData.workouts).forEach(([key, value]) => {
-            if (!Array.isArray(value)) {
-              fixedData.workouts[key] = Array.isArray(value) ? value : [];
-            }
-          });
+          if (fixedData.workouts) {
+            Object.entries(fixedData.workouts).forEach(([key, value]) => {
+              if (!Array.isArray(value)) {
+                fixedData.workouts[key] = [];
+                logMessage(`Fixed workout format for ${key}`, null, 'info');
+              }
+            });
+          } else {
+            fixedData.workouts = {};
+          }
+          
+          // Ensure meals is an object
+          if (!fixedData.meals || typeof fixedData.meals !== 'object' || Array.isArray(fixedData.meals)) {
+            fixedData.meals = {};
+            logMessage("Reset meals data structure", null, 'info');
+          }
           
           // Update the fixed data
           setWeeklyData(fixedData);
+          logMessage("Applied data structure fixes", fixedData, 'info');
           
           // Also update localStorage if that's what we're using
           if (storageDetails.usingLocalStorage) {
             try {
               localStorage.setItem('weeklyData', JSON.stringify(fixedData));
-              console.log("Updated localStorage with fixed data structure");
+              logMessage("Updated localStorage with fixed data structure", null, 'success');
             } catch (e) {
-              console.error("Failed to update localStorage:", e);
+              logMessage("Failed to update localStorage", e, 'error');
             }
           }
         }
       }
     } catch (error) {
-      console.error('Error in data inspection:', error);
+      logMessage('Error in data inspection:', error, 'error');
     }
   }, [weeklyData, setWeeklyData]);
   
@@ -340,36 +392,88 @@ export default function WorkoutRecommender() {
             <pre className="text-xs overflow-auto">
               {JSON.stringify(storageInfo, null, 2)}
             </pre>
-            {debugInfo && debugInfo.hasDataIssues && (
+            {debugInfo && (debugInfo.hasDataIssues || debugInfo.needsHydrationFix) && (
               <div className="mt-1 p-1 bg-red-900 bg-opacity-30 rounded">
-                <p className="text-xs text-red-300">⚠️ Data structure issues detected</p>
+                <p className="text-xs text-red-300">
+                  ⚠️ Data structure issues detected
+                  {debugInfo.needsHydrationFix && " (including hydration data format)"}
+                </p>
               </div>
             )}
-            <button 
-              onClick={() => {
-                console.log('Current Context Data:', weeklyData);
-                const localData = localStorage.getItem('weeklyData');
-                console.log('LocalStorage Data:', localData ? JSON.parse(localData) : null);
-                alert('Storage info logged to console. Open browser developer tools to view.');
-                
-                // Advanced data recovery option
-                if (debugInfo && debugInfo.hasDataIssues) {
-                  const shouldReset = window.confirm("Data structure issues detected. Would you like to reset the data structure? (This will keep your workouts but fix formatting issues)");
-                  if (shouldReset) {
-                    try {
-                      const fixedData = { workouts: {}, meals: {}, hydration: 0 };
-                      setWeeklyData(fixedData);
-                      localStorage.setItem('weeklyData', JSON.stringify(fixedData));
-                      alert("Data structure has been reset. Your previous entries will need to be re-entered.");
-                    } catch (e) {
-                      console.error("Failed to reset data:", e);
-                    }
+            <div className="flex gap-2 mt-1">
+              <button 
+                onClick={() => {
+                  logMessage('User viewed current data', weeklyData, 'info');
+                  const localData = localStorage.getItem('weeklyData');
+                  console.log('LocalStorage Data:', localData ? JSON.parse(localData) : null);
+                  alert('Storage info logged to console. Open browser developer tools to view.');
+                }}
+                className="text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded">
+                Debug Data
+              </button>
+              <button
+                onClick={() => setLogs([])}
+                className="text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded">
+                Clear Logs
+              </button>
+            </div>
+            {/* Add collapsible logs section */}
+            <details className="mt-2">
+              <summary className="text-xs cursor-pointer hover:text-white">App Logs ({logs.length})</summary>
+              <div className="mt-1 text-xs bg-gray-900 p-1 rounded overflow-auto max-h-64">
+                {logs.length > 0 ? (
+                  logs.map((log, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`mb-1 p-1 rounded ${
+                        log.type === 'error' ? 'bg-red-900 bg-opacity-20' : 
+                        log.type === 'warn' ? 'bg-yellow-900 bg-opacity-20' : 
+                        'bg-blue-900 bg-opacity-10'
+                      }`}
+                    >
+                      <div className="font-mono text-gray-500">{log.timestamp}</div>
+                      <div className={
+                        log.type === 'error' ? 'text-red-400' : 
+                        log.type === 'warn' ? 'text-yellow-400' : 
+                        'text-blue-400'
+                      }>
+                        {log.message}
+                      </div>
+                      {log.data && <pre className="overflow-x-auto whitespace-pre-wrap">{log.data}</pre>}
+                    </div>
+                  ))
+                ) : (
+                  <p>No logs yet</p>
+                )}
+              </div>
+            </details>
+            
+            {/* Fix button for hydration error #31 */}
+            {debugInfo && debugInfo.needsHydrationFix && (
+              <button
+                onClick={() => {
+                  try {
+                    // Create a clean data structure to fix the Error #31
+                    const fixedData = {
+                      workouts: weeklyData.workouts || {},
+                      meals: weeklyData.meals || {},
+                      hydration: 0  // Reset to number to fix the object issue
+                    };
+                    
+                    // Update state and localStorage
+                    setWeeklyData(fixedData);
+                    localStorage.setItem('weeklyData', JSON.stringify(fixedData));
+                    logMessage("Fixed Error #31 by resetting hydration data", null, 'success');
+                    alert("Data structure has been fixed. Any existing hydration data has been reset.");
+                  } catch (e) {
+                    logMessage("Failed to fix Error #31", e, 'error');
+                    console.error("Failed to fix data:", e);
                   }
-                }
-              }}
-              className="mt-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded">
-              Debug Data
-            </button>
+                }}
+                className="mt-2 text-xs bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded w-full">
+                Fix Error #31 (Reset Hydration)
+              </button>
+            )}
           </div>
         )}
       </div>
