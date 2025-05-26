@@ -493,7 +493,7 @@ export default function WorkoutRecommender() {
                 <button
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
                   className="flex items-center gap-1 text-sm text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 py-1.5 px-3 rounded-lg transition-colors"
-                ></button>
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
@@ -501,7 +501,7 @@ export default function WorkoutRecommender() {
                 </button>
                 
                 {isFilterOpen && (
-                  <div className="absolute right-0 mt-1 w-48 bg-gray-700 rounded-lg shadow-lg overflow-hidden z-10"></div>
+                  <div className="absolute right-0 mt-1 w-48 bg-gray-700 rounded-lg shadow-lg overflow-hidden z-10">
                     <div className="p-3">
                       <div className="mb-2">
                         <label className="text-xs font-medium text-gray-400 block mb-1">Workout Type</label>
@@ -509,7 +509,7 @@ export default function WorkoutRecommender() {
                           className="w-full bg-gray-800 text-white text-sm rounded-md p-1.5"
                           value={filter.type}
                           onChange={(e) => setFilter({...filter, type: e.target.value})}
-                        ></select>
+                        >
                           <option value="all">All Types</option>
                           <option value="strength">Strength</option>
                           <option value="cardio">Cardio</option>
@@ -530,10 +530,10 @@ export default function WorkoutRecommender() {
                     </div>
                   </div>
                 )}
-              </div></div>
+              </div>
             </div>
             
-            <div className="bg-blue-900 bg-opacity-20 rounded-lg p-4 mb-4"></div>
+            <div className="bg-blue-900 bg-opacity-20 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="bg-blue-500 p-1.5 rounded-full">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -555,7 +555,7 @@ export default function WorkoutRecommender() {
             {filter.type !== 'all' && (
               <span className="bg-blue-900 bg-opacity-30 text-blue-400 text-xs px-3 py-1 rounded-full flex items-center gap-1">
                 {filter.type.charAt(0).toUpperCase() + filter.type.slice(1)} Only
-                <button onClick={() => setFilter({...filter, type: 'all'})}></button>
+                <button onClick={() => setFilter({...filter, type: 'all'})}>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -606,7 +606,7 @@ export default function WorkoutRecommender() {
                       }}
                       id={`add-workout-${index}`}
                       className="mt-3 bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-3 rounded transition-colors w-full font-medium flex items-center justify-center gap-2"
-                    ></button>
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
@@ -616,7 +616,7 @@ export default function WorkoutRecommender() {
                 </div>
               );
             }) : (
-              <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gray-700 rounded-lg p-8 text-center"></div>
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gray-700 rounded-lg p-8 text-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -630,14 +630,14 @@ export default function WorkoutRecommender() {
       
       {/* Progress Tab Content */}
       {activeTab === 'progress' && (
-        <div className="mb-6"></div>
+        <div className="mb-6">
           <h3 className="text-xl text-white font-semibold mb-4 relative">
             Your Workout Journey
             {renderTooltip("Track your progress and see your workout statistics over time.")}
           </h3>
           
           {progressStats ? (
-            <></>
+            <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-700 rounded-lg p-4">
                   <p className="text-gray-400 text-sm mb-1">Total Workouts</p>
@@ -729,7 +729,7 @@ export default function WorkoutRecommender() {
               </div>
             </>
           ) : (
-            <div className="bg-gray-700 rounded-lg p-8 text-center"></div>
+            <div className="bg-gray-700 rounded-lg p-8 text-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -742,10 +742,10 @@ export default function WorkoutRecommender() {
       
       {/* Debug Tab Content */}
       {activeTab === 'debug' && storageInfo && (
-        <div className="mb-6"></div>
+        <div className="mb-6">
           <h3 className="text-xl text-white font-semibold mb-4">Debug & Data Management</h3>
           
-          <div className="bg-gray-700 p-4 rounded-lg mb-4"></div>
+          <div className="bg-gray-700 p-4 rounded-lg mb-4">
             <h4 className="text-white text-lg mb-3">Storage Information</h4>
             <pre className="text-xs text-gray-300 bg-gray-800 p-3 rounded overflow-auto max-h-32">
               {JSON.stringify(storageInfo, null, 2)}
@@ -812,7 +812,7 @@ export default function WorkoutRecommender() {
                 </div>
               </div>
               
-              <div></div>
+              <div>
                 <h5 className="text-white text-sm mb-2">Issues & Fixes</h5>
                 {debugInfo && (debugInfo.hasDataIssues || debugInfo.needsHydrationFix) ? (
                   <div className="space-y-2">
