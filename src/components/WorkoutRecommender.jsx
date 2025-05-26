@@ -65,6 +65,19 @@ export default function WorkoutRecommender() {
   const [showHelp, setShowHelp] = useState(false); // State for help tooltips
   const [isFilterOpen, setIsFilterOpen] = useState(false); // For filter dropdown
   const [filter, setFilter] = useState({ level: 'all', type: 'all' }); // Filter state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showDataSourceInfo, setShowDataSourceInfo] = useState(false);
+  
+  // Check if it's the user's first visit
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem('hasVisitedBefore');
+    if (!hasVisitedBefore) {
+      // First time visitor
+      setShowOnboarding(true);
+      localStorage.setItem('hasVisitedBefore', 'true');
+    }
+  }, []);
   
   // Enhanced logging function
   const logMessage = (message, data = null, type = 'info') => {
@@ -396,6 +409,162 @@ export default function WorkoutRecommender() {
   const levelString = typeof recommendations.level === 'string' ? recommendations.level : 'beginner';
   const focusNeededString = typeof recommendations.focusNeeded === 'string' ? recommendations.focusNeeded : 'general';
   
+  // Onboarding steps
+  const onboardingSteps = [
+    {
+      title: "Welcome to FitTrack!",
+      content: "This app helps you track your workouts and provides personalized workout recommendations based on your fitness journey.",
+      target: "welcome"
+    },
+    {
+      title: "Workout Recommendations",
+      content: "Here you'll find workouts tailored to your fitness level and goals. We analyze your past activities to suggest what to focus on next.",
+      target: "recommendations-tab"
+    },
+    {
+      title: "Progress Tracking",
+      content: "The Progress tab shows your workout statistics and balance between different workout types.",
+      target: "progress-tab"
+    },
+    {
+      title: "Adding Workouts",
+      content: "When you see a workout you like, just click 'Add to Log' to save it to your workout history.",
+      target: "sample-workout"
+    },
+    {
+      title: "All Set!",
+      content: "You're all set to start your fitness journey! Remember, consistency is key. Click 'Get Started' to begin.",
+      target: "welcome"
+    }
+  ];
+
+  // Function to render the onboarding tutorial
+  const renderOnboarding = () => {
+    if (!showOnboarding) return null;
+    
+    const step = onboardingSteps[currentStep];
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+        <div className="bg-gray-800 rounded-xl shadow-xl p-6 max-w-md mx-4">
+          <h3 className="text-xl text-white font-bold mb-3">{step.title}</h3>
+          <p className="text-gray-300 mb-6">{step.content}</p>
+          <div className="flex justify-between">
+            <button 
+              onClick={() => setShowOnboarding(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              Skip Tutorial
+            </button>
+            <div className="space-x-3">
+              {currentStep > 0 && (
+                <button 
+                  onClick={() => setCurrentStep(prev => prev - 1)}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                >
+                  Previous
+                </button>
+              )}
+              {currentStep < onboardingSteps.length - 1 ? (
+                <button 
+                  onClick={() => setCurrentStep(prev => prev + 1)}
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded"
+                >
+                  Next
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setShowOnboarding(false)}
+                  className="px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded"
+                >
+                  Get Started
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  // Data source information modal
+  const renderDataSourceInfo = () => {
+    if (!showDataSourceInfo) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+        <div className="bg-gray-800 rounded-xl shadow-xl p-6 max-w-2xl mx-4 overflow-y-auto max-h-[90vh]">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-xl text-white font-bold">How FitTrack Works</h3>
+            <button 
+              onClick={() => setShowDataSourceInfo(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="space-y-4 text-gray-300 mb-4">
+            <div>
+              <h4 className="text-white font-semibold mb-2">Data Storage</h4>
+              <p className="mb-2">All your workout data is stored locally in your browser's storage. This means:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Your data stays on your device</li>
+                <li>No account or login needed</li>
+                <li>Data will persist between visits on the same browser</li>
+                <li>You can export your data from the Debug Panel</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-semibold mb-2">Workout Recommendations</h4>
+              <p className="mb-2">The workout recommendations are based on:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Your previous workout history</li>
+                <li>The balance of workout types (strength, cardio, flexibility)</li>
+                <li>Your current fitness level (beginner, intermediate, advanced)</li>
+                <li>Workout types you may be missing in your routine</li>
+              </ul>
+              <p className="mt-2">
+                The more workouts you log, the more personalized your recommendations become.
+                Initially, you'll start with beginner-level recommendations.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-semibold mb-2">Fitness Level Determination</h4>
+              <p className="mb-2">Your fitness level (beginner, intermediate, advanced) is calculated based on:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>The average intensity of your logged workouts</li>
+                <li>The frequency of your workouts</li>
+                <li>The variety of exercises you perform</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-semibold mb-2">How to Get the Most From FitTrack</h4>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Log your workouts regularly</li>
+                <li>Try different workout types for a balanced routine</li>
+                <li>Track your progress over time in the Progress tab</li>
+                <li>Follow the suggested focus areas for optimal results</li>
+              </ol>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => setShowDataSourceInfo(false)}
+            className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded"
+          >
+            Got It!
+          </button>
+        </div>
+      </div>
+    );
+  };
+  
   // Function to render help tooltip
   const renderTooltip = (text) => {
     if (!showHelp) return null;
@@ -406,12 +575,21 @@ export default function WorkoutRecommender() {
     );
   };
   
+  // Default focusNeeded based on recommendations
+  let defaultFocusNeeded = 'strength';
+  if (recommendations && recommendations.focusNeeded) {
+    defaultFocusNeeded = recommendations.focusNeeded;
+  }
+  
   return (
     <div className="bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg max-w-6xl mx-auto mb-8 transition-all duration-300">
+      {renderOnboarding()}
+      {renderDataSourceInfo()}
+      
       {/* Header with title, level badge, and help toggle */}
       <div className="flex flex-wrap justify-between items-center mb-6 border-b border-gray-700 pb-4">
         <div className="flex items-center gap-2 mb-2 md:mb-0">
-          <h2 className="text-2xl md:text-3xl font-bold text-white">
+          <h2 className="text-2xl md:text-3xl font-bold text-white" id="welcome">
             <span className="text-blue-400">Fit</span>Track
           </h2>
           <span className="bg-blue-500 text-xs font-medium px-2.5 py-0.5 rounded-full text-white">
@@ -420,6 +598,12 @@ export default function WorkoutRecommender() {
         </div>
         
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowDataSourceInfo(true)}
+            className="text-sm py-1 px-3 rounded-full border bg-transparent border-gray-600 text-gray-400 hover:border-blue-500 hover:text-blue-400 transition-colors"
+          >
+            How It Works
+          </button>
           <button 
             onClick={() => setShowHelp(!showHelp)}
             className={`text-sm py-1 px-3 rounded-full border ${
@@ -445,6 +629,7 @@ export default function WorkoutRecommender() {
       {/* Navigation Tabs */}
       <div className="flex overflow-x-auto scrollbar-hide mb-6 border-b border-gray-700">
         <button
+          id="recommendations-tab"
           onClick={() => setActiveTab('recommendations')}
           className={`px-4 py-2 font-medium text-sm border-b-2 whitespace-nowrap ${
             activeTab === 'recommendations'
@@ -453,8 +638,10 @@ export default function WorkoutRecommender() {
           } transition-colors`}
         >
           Recommendations
+          {renderTooltip("Personalized workout suggestions based on your history")}
         </button>
         <button
+          id="progress-tab"
           onClick={() => setActiveTab('progress')}
           className={`px-4 py-2 font-medium text-sm border-b-2 whitespace-nowrap ${
             activeTab === 'progress'
@@ -463,6 +650,7 @@ export default function WorkoutRecommender() {
           } transition-colors`}
         >
           Your Progress
+          {renderTooltip("View your workout statistics and track improvement")}
         </button>
         {storageInfo && (
           <button
@@ -474,9 +662,43 @@ export default function WorkoutRecommender() {
             } transition-colors`}
           >
             Debug Panel
+            {renderTooltip("Advanced tools for data management")}
           </button>
         )}
       </div>
+      
+      {/* Empty state for new users */}
+      {(!weeklyData || !weeklyData.workouts || Object.keys(weeklyData.workouts).length === 0) && activeTab === 'recommendations' && (
+        <div className="bg-blue-900 bg-opacity-20 p-5 rounded-lg mb-6">
+          <div className="flex items-start gap-4">
+            <div className="bg-blue-500 p-2 rounded-full mt-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-white font-medium text-lg mb-2">Welcome to FitTrack!</h3>
+              <p className="text-gray-300 mb-3">
+                It looks like you're new here. To get personalized workout recommendations, start by adding workouts to your log.
+              </p>
+              <ol className="list-decimal text-gray-300 pl-5 mb-4 space-y-2">
+                <li>Browse the <strong>recommended workouts</strong> below and click "Add to Log" when you complete one</li>
+                <li>Check your <strong>progress</strong> in the Progress tab to see your workout statistics</li>
+                <li>The more workouts you log, the more <strong>personalized</strong> your recommendations become</li>
+              </ol>
+              <button 
+                onClick={() => setShowOnboarding(true)}
+                className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Take a quick tour
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Recommendations Tab Content */}
       {activeTab === 'recommendations' && (
@@ -547,6 +769,17 @@ export default function WorkoutRecommender() {
               <p className="text-gray-300 text-sm ml-9">
                 Based on your recent activity, we recommend focusing on <span className="text-blue-400 font-medium">{focusNeededString}</span> training today to balance your workout routine.
               </p>
+              <div className="mt-3 ml-9">
+                <button 
+                  onClick={() => setShowDataSourceInfo(true)}
+                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  How are recommendations generated?
+                </button>
+              </div>
             </div>
           </div>
           
@@ -576,7 +809,7 @@ export default function WorkoutRecommender() {
               const description = String(workout.description || 'No description available');
               
               return (
-                <div key={index} className="bg-gray-700 rounded-lg overflow-hidden hover:bg-gray-600 transition-colors transform hover:-translate-y-1 hover:shadow-lg duration-300">
+                <div key={index} id={index === 0 ? "sample-workout" : undefined} className="bg-gray-700 rounded-lg overflow-hidden hover:bg-gray-600 transition-colors transform hover:-translate-y-1 hover:shadow-lg duration-300">
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <h4 className="text-white font-medium">{name}</h4>
@@ -642,10 +875,12 @@ export default function WorkoutRecommender() {
                 <div className="bg-gray-700 rounded-lg p-4">
                   <p className="text-gray-400 text-sm mb-1">Total Workouts</p>
                   <p className="text-white text-2xl font-bold">{progressStats.totalWorkouts}</p>
+                  <p className="text-gray-500 text-xs mt-1">Number of logged workouts</p>
                 </div>
                 <div className="bg-gray-700 rounded-lg p-4">
                   <p className="text-gray-400 text-sm mb-1">Total Time</p>
                   <p className="text-white text-2xl font-bold">{progressStats.totalMinutes} mins</p>
+                  <p className="text-gray-500 text-xs mt-1">Total workout duration</p>
                 </div>
                 <div className="bg-gray-700 rounded-lg p-4">
                   <p className="text-gray-400 text-sm mb-1">Last Workout</p>
@@ -735,6 +970,14 @@ export default function WorkoutRecommender() {
               </svg>
               <p className="text-gray-400">No workout data available yet.</p>
               <p className="text-gray-500 text-sm mt-2">Start by adding workouts to your log!</p>
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={() => setActiveTab('recommendations')}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md"
+                >
+                  Browse Workout Recommendations
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -973,6 +1216,12 @@ export default function WorkoutRecommender() {
                 Manage data
               </button>
             )}
+            <button 
+              onClick={() => setShowOnboarding(true)} 
+              className="text-blue-400 hover:underline ml-3"
+            >
+              Show tutorial
+            </button>
           </span>
         </p>
       </div>

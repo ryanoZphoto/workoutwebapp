@@ -5,28 +5,80 @@ export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [weeklyData, setWeeklyData] = useState(() => {
-    const saved = localStorage.getItem('weeklyData');
-    return saved ? JSON.parse(saved) : {
-      workouts: {},
-      meals: {},
-      hydration: [],
-      goals: {
-        workoutDays: 4,
-        calories: 2000,
-        protein: 150,
-        waterIntake: 2000,
-      },
-      history: {
-        previousWeeks: []
-      },
-      userInfo: {
-        weight: 70,  // kg
-        height: 170, // cm
-        age: 30,
-        gender: 'male',
-        activityLevel: 'moderate'
-      }
-    };
+    try {
+      const saved = localStorage.getItem('weeklyData');
+      // Parse saved data safely or use default structure
+      const parsedData = saved ? JSON.parse(saved) : null;
+      
+      // Ensure we have a valid object with all required properties
+      return parsedData && typeof parsedData === 'object' ? {
+        workouts: parsedData.workouts || {},
+        meals: parsedData.meals || {},
+        hydration: Array.isArray(parsedData.hydration) ? parsedData.hydration : [],
+        goals: {
+          workoutDays: (parsedData.goals?.workoutDays) || 4,
+          calories: (parsedData.goals?.calories) || 2000,
+          protein: (parsedData.goals?.protein) || 150,
+          waterIntake: (parsedData.goals?.waterIntake) || 2000,
+        },
+        history: {
+          previousWeeks: Array.isArray(parsedData.history?.previousWeeks) ? 
+            parsedData.history.previousWeeks : []
+        },
+        userInfo: {
+          weight: (parsedData.userInfo?.weight) || 70,  // kg
+          height: (parsedData.userInfo?.height) || 170, // cm
+          age: (parsedData.userInfo?.age) || 30,
+          gender: (parsedData.userInfo?.gender) || 'male',
+          activityLevel: (parsedData.userInfo?.activityLevel) || 'moderate'
+        }
+      } : {
+        // Default structure if saved data is invalid
+        workouts: {},
+        meals: {},
+        hydration: [],
+        goals: {
+          workoutDays: 4,
+          calories: 2000,
+          protein: 150,
+          waterIntake: 2000,
+        },
+        history: {
+          previousWeeks: []
+        },
+        userInfo: {
+          weight: 70,  // kg
+          height: 170, // cm
+          age: 30,
+          gender: 'male',
+          activityLevel: 'moderate'
+        }
+      };
+    } catch (error) {
+      console.error("Error initializing app data:", error);
+      // Return default structure on error
+      return {
+        workouts: {},
+        meals: {},
+        hydration: [],
+        goals: {
+          workoutDays: 4,
+          calories: 2000,
+          protein: 150,
+          waterIntake: 2000,
+        },
+        history: {
+          previousWeeks: []
+        },
+        userInfo: {
+          weight: 70,
+          height: 170,
+          age: 30,
+          gender: 'male',
+          activityLevel: 'moderate'
+        }
+      };
+    }
   });
   
   // Track whether workout reminders are enabled
