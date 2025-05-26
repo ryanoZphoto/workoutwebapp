@@ -3,25 +3,41 @@ import { AppContext } from '../context/AppContext';
 
 export default function HydrationTracker() {
   const { weeklyData, setWeeklyData } = useContext(AppContext);
+  const [waterAmount, setWaterAmount] = useState('');
   const [cups, setCups] = useState('');
-  
-  // Initialize total water amount from hydration array
-  const totalWater = Array.isArray(weeklyData.hydration) 
-    ? weeklyData.hydration.reduce((sum, entry) => sum + (entry.amount || 0), 0) 
-    : (weeklyData.hydration || 0);
-  
-  const [waterAmount, setWaterAmount] = useState(totalWater ? totalWater.toString() : '');
 
+  // Safely handle different data formats for hydration
+  const hydrationData = (() => {
+    if (Array.isArray(weeklyData.hydration)) {
+      return weeklyData.hydration;
+    } else if (typeof weeklyData.hydration === 'number') {
+      // Legacy format - convert to new format with single entry
+      return [{
+        day: 'Legacy',
+        amount: weeklyData.hydration,
+        timestamp: new Date().toISOString()
+      }];
+    }
+    return [];
+  })();
+
+  // Calculate total water intake
+  const totalWater = hydrationData.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+
+  // Reset form fields when hydration data changes
   useEffect(() => {
-    // Reset cups if there's no hydration data
-    if ((Array.isArray(weeklyData.hydration) && weeklyData.hydration.length === 0) || 
-        weeklyData.hydration === 0) {
+    if (hydrationData.length === 0) {
       setCups('');
       setWaterAmount('');
     }
-  }, [weeklyData.hydration]);
+  }, [hydrationData]);
 
   const saveHydration = () => {
+    if (!waterAmount || isNaN(Number(waterAmount)) || Number(waterAmount) <= 0) {
+      alert('Please enter a valid water amount');
+      return;
+    }
+
     const amount = Number(waterAmount);
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     
@@ -32,16 +48,18 @@ export default function HydrationTracker() {
       timestamp: new Date().toISOString()
     };
     
-    // Handle the case where hydration could be either an array or a number (for backward compatibility)
-    const currentHydration = Array.isArray(weeklyData.hydration) ? weeklyData.hydration : [];
-    
+    // Always treat hydration as array in the new format
     const updated = { 
       ...weeklyData, 
-      hydration: [...currentHydration, newEntry]
+      hydration: [...hydrationData, newEntry]
     };
     
     setWeeklyData(updated);
     alert('Water intake saved.');
+    
+    // Clear the input fields
+    setWaterAmount('');
+    setCups('');
   };
 
   // Calculate daily goal progress
@@ -83,21 +101,25 @@ export default function HydrationTracker() {
             type="number"
             min="0"
             value={waterAmount}
-            onChange={(e) => setWaterAmount(e.target.value)}
+            onChange={(e) => {
+              setWaterAmount(e.target.value);
+              setCups((parseFloat(e.target.value) / 240).toFixed(1));
+            }}
             placeholder="Water amount in ml"
             className="bg-gray-700 text-white p-2 rounded w-full"
           />
         </div>
         
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Water in Cups (8oz/240ml)</label>
+          <label className="block text-sm text-gray-300 mb-1">Cups (8oz/240ml)</label>
           <input
             type="number"
             min="0"
+            step="0.1"
             value={cups}
             onChange={(e) => {
               setCups(e.target.value);
-              setWaterAmount((parseFloat(e.target.value) * 240).toString());
+              setWaterAmount(Math.round(parseFloat(e.target.value) * 240).toString());
             }}
             placeholder="Cups (8oz each)"
             className="bg-gray-700 text-white p-2 rounded w-full"
