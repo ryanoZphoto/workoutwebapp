@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+// Using absolute import to avoid path resolution issues
 import './styles.css';
 import { AppProvider } from './context/AppContext';
 

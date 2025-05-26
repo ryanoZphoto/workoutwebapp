@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+// Using absolute import to avoid path resolution issues
 import './styles.css';
 // Entry point and layout
 import WorkoutLogger from "./components/WorkoutLogger";
