@@ -28,14 +28,14 @@ filesToCheck.forEach(file => {
 });
 
 // Check for potential file duplication issues
-console.log('\nPotential duplicate files:');
+console.log('/nPotential duplicate files:');
 if (fs.existsSync('src/App.js') && fs.existsSync('src/App.jsx')) {
   console.log('WARNING: Both App.js and App.jsx exist - this may cause build confusion');
 }
 
 // Check package.json dependencies
 const packageJson = require('./package.json');
-console.log('\nKey Dependencies:');
+console.log('/nKey Dependencies:');
 const requiredDeps = [
   'react', 'react-dom', 'react-router-dom', 'stripe',
   'react-scripts', 'tailwindcss'
@@ -49,12 +49,12 @@ requiredDeps.forEach(dep => {
 });
 
 // Check for peer dependency issues
-console.log('\nChecking for potential peer dependency issues:');
+console.log('/nChecking for potential peer dependency issues:');
 const reactVersion = packageJson.dependencies['react'];
 const reactDomVersion = packageJson.dependencies['react-dom'];
 if (reactVersion !== reactDomVersion) {
   console.log('WARNING: react and react-dom versions do not match');
 }
 
-console.log('\nBuild command:', packageJson.scripts.build);
+console.log('/nBuild command:', packageJson.scripts.build);
 console.log('Build directory:', packageJson.build?.outputDirectory || 'build');
