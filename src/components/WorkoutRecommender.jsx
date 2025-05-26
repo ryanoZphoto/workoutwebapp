@@ -59,8 +59,9 @@ const workoutLibrary = {
 export default function WorkoutRecommender() {
   const { weeklyData, setWeeklyData } = useContext(AppContext);
   const [storageInfo, setStorageInfo] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
   
-  // Add effect to detect storage mechanism
+  // Add effect to detect storage mechanism and fix data issues
   useEffect(() => {
     try {
       // Check what storage mechanisms are available and in use
@@ -74,12 +75,108 @@ export default function WorkoutRecommender() {
       
       setStorageInfo(storageDetails);
       
-      console.log('Storage information:', storageDetails);
-      console.log('Current weeklyData:', weeklyData);
+      // Handle potential data structure issues
+      if (weeklyData) {
+        let hasDataIssues = false;
+        let dataInfo = { structure: {} };
+        
+        // Inspect workouts structure
+        if (weeklyData.workouts) {
+          dataInfo.structure.workouts = typeof weeklyData.workouts;
+          
+          // Check if there are any invalid entries in workouts
+          Object.entries(weeklyData.workouts || {}).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+              value.forEach((item, index) => {
+                if (item && typeof item === 'object' && !React.isValidElement(item)) {
+                  // This is intended to catch objects that might cause React element issues
+                  dataInfo[`workout_${key}_${index}`] = Object.keys(item);
+                }
+              });
+            } else {
+              dataInfo[`workout_${key}_invalid`] = typeof value;
+              hasDataIssues = true;
+            }
+          });
+        }
+        
+        setDebugInfo({ hasDataIssues, dataInfo });
+        
+        // Attempt to fix data structure if needed
+        if (hasDataIssues && weeklyData.workouts) {
+          console.log("Attempting to fix data structure issues...");
+          const fixedData = { ...weeklyData };
+          
+          // Ensure workouts is an object with arrays
+          Object.entries(fixedData.workouts).forEach(([key, value]) => {
+            if (!Array.isArray(value)) {
+              fixedData.workouts[key] = Array.isArray(value) ? value : [];
+            }
+          });
+          
+          // Update the fixed data
+          setWeeklyData(fixedData);
+          
+          // Also update localStorage if that's what we're using
+          if (storageDetails.usingLocalStorage) {
+            try {
+              localStorage.setItem('weeklyData', JSON.stringify(fixedData));
+              console.log("Updated localStorage with fixed data structure");
+            } catch (e) {
+              console.error("Failed to update localStorage:", e);
+            }
+          }
+        }
+      }
     } catch (error) {
-      console.error('Error checking storage:', error);
+      console.error('Error in data inspection:', error);
     }
-  }, [weeklyData]);
+  }, [weeklyData, setWeeklyData]);
+  
+  // Handle workout addition with better error handling
+  const addWorkoutToLog = (workout, focusNeeded) => {
+    try {
+      // Create a deep copy to avoid reference issues
+      const updated = JSON.parse(JSON.stringify(weeklyData || { workouts: {} }));
+      
+      if (!updated.workouts) {
+        updated.workouts = {};
+      }
+      
+      // Map workout type to a muscle group
+      const muscleGroup = focusNeeded === 'strength' ? 
+        'Full Body' : (focusNeeded === 'flexibility' ? 'Mobility' : 'Cardio');
+      
+      // Ensure the muscle group entry is an array
+      if (!updated.workouts[muscleGroup] || !Array.isArray(updated.workouts[muscleGroup])) {
+        updated.workouts[muscleGroup] = [];
+      }
+      
+      // Add workout with proper structure
+      updated.workouts[muscleGroup].push({
+        name: workout.name || 'Unnamed workout',
+        sets: '1',
+        reps: '1',
+        weight: '0',
+        duration: workout.duration ? String(workout.duration) : '30',
+        type: focusNeeded || 'general',
+        date: new Date().toISOString().split('T')[0] // Add date for archiving purposes
+      });
+      
+      // Update state
+      setWeeklyData(updated);
+      
+      // Also update localStorage if that's what we're using
+      if (localStorage.getItem('weeklyData')) {
+        localStorage.setItem('weeklyData', JSON.stringify(updated));
+      }
+      
+      alert(`Added ${workout.name} to your workout log!`);
+    } catch (error) {
+      console.error('Error adding workout to log:', error);
+      alert('Sorry, there was an error adding the workout. Please try again.');
+    }
+  };
   
   // Analyze past workouts to determine appropriate level and focus
   const recommendations = useMemo(() => {
@@ -216,38 +313,7 @@ export default function WorkoutRecommender() {
                 </div>
                 <p className="text-gray-400 text-sm">{description}</p>
                 <button 
-                  onClick={() => {
-                    // Add workout to log functionality
-                    try {
-                      const updated = { ...weeklyData };
-                      
-                      if (!updated.workouts) {
-                        updated.workouts = {};
-                      }
-                      
-                      // Map workout type to a muscle group
-                      const muscleGroup = recommendations.focusNeeded === 'strength' ? 
-                        'Full Body' : (recommendations.focusNeeded === 'flexibility' ? 'Mobility' : 'Cardio');
-                      
-                      if (!updated.workouts[muscleGroup]) {
-                        updated.workouts[muscleGroup] = [];
-                      }
-                      
-                      updated.workouts[muscleGroup].push({
-                        name: name,
-                        sets: '1',
-                        reps: '1',
-                        weight: '0',
-                        duration: duration,
-                        type: recommendations.focusNeeded
-                      });
-                      
-                      setWeeklyData(updated);
-                      alert(`Added ${name} to your workout log!`);
-                    } catch (error) {
-                      console.error('Error adding workout to log:', error);
-                    }
-                  }}
+                  onClick={() => addWorkoutToLog(workout, recommendations.focusNeeded)}
                   className="mt-3 bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded transition-colors w-full">
                   Add to Log
                 </button>
@@ -274,10 +340,32 @@ export default function WorkoutRecommender() {
             <pre className="text-xs overflow-auto">
               {JSON.stringify(storageInfo, null, 2)}
             </pre>
+            {debugInfo && debugInfo.hasDataIssues && (
+              <div className="mt-1 p-1 bg-red-900 bg-opacity-30 rounded">
+                <p className="text-xs text-red-300">⚠️ Data structure issues detected</p>
+              </div>
+            )}
             <button 
               onClick={() => {
                 console.log('Current Context Data:', weeklyData);
+                const localData = localStorage.getItem('weeklyData');
+                console.log('LocalStorage Data:', localData ? JSON.parse(localData) : null);
                 alert('Storage info logged to console. Open browser developer tools to view.');
+                
+                // Advanced data recovery option
+                if (debugInfo && debugInfo.hasDataIssues) {
+                  const shouldReset = window.confirm("Data structure issues detected. Would you like to reset the data structure? (This will keep your workouts but fix formatting issues)");
+                  if (shouldReset) {
+                    try {
+                      const fixedData = { workouts: {}, meals: {}, hydration: 0 };
+                      setWeeklyData(fixedData);
+                      localStorage.setItem('weeklyData', JSON.stringify(fixedData));
+                      alert("Data structure has been reset. Your previous entries will need to be re-entered.");
+                    } catch (e) {
+                      console.error("Failed to reset data:", e);
+                    }
+                  }
+                }
               }}
               className="mt-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded">
               Debug Data
