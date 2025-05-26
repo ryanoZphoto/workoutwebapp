@@ -943,7 +943,7 @@ export default function WorkoutRecommender() {
                       log.type === 'warn' ? 'text-yellow-400' : 
                       log.type === 'success' ? 'text-green-400' :
                       'text-blue-400'
-                    }></div>
+                    }>
                       {log.message}
                     </div>
                     {log.data && <pre className="overflow-x-auto whitespace-pre-wrap mt-1 text-gray-400 bg-gray-900 p-1 rounded">{log.data}</pre>}
