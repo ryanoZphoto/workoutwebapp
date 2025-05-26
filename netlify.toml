@@ -1,16 +1,25 @@
+# Netlify configuration file
 [build]
-  command = "npm run build"
+  # Build command
+  command = "npm run build:netlify"
+  # Build output directory
   publish = "build"
+  # Functions directory
   functions = "netlify/functions"
 
+# Build environment
 [build.environment]
   NODE_VERSION = "22.x"
 
+# Redirects
 [[redirects]]
+  # Redirect API requests to Netlify functions
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
+# Redirects
+# Redirect all unmatched routes to index.html for SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
