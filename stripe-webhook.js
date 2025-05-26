@@ -272,6 +272,10 @@ async function handleSubscriptionCreated(subscription) {
   return retry(async () => {
     logger.info(`🔄 Subscription created: ${subscription.id}, status: ${subscription.status}`);
     
+    // Check if subscription is in trial period
+    const isInTrial = subscription.status === 'trialing';
+    const trialEnd = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
+    
     if (db) {
       // Store subscription in database
       const subscriptionsCollection = db.collection('subscriptions');
@@ -283,9 +287,13 @@ async function handleSubscriptionCreated(subscription) {
         priceId: subscription.items.data[0].price.id,
         amount: subscription.items.data[0].price.unit_amount,
         interval: subscription.items.data[0].price.recurring.interval,
+        isInTrial: isInTrial,
+        trialEnd: trialEnd,
+        productDetails: subscription.metadata || {},
         currentPeriodStart: new Date(subscription.current_period_start * 1000),
         currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-        createdAt: new Date()
+        createdAt: new Date(),
+        pricingInfo: "First month FREE, then $1.00/month"
       });
     }
   }, { retries: 3 });
@@ -360,17 +368,67 @@ async function handleSubscriptionCancelled(subscription) {
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
-  console.log(`💰 Invoice payment succeeded: ${invoice.id} for $${invoice.amount_paid / 100}`);
-  
-  // Example: Update subscription payment history
-  // if (invoice.subscription) {
-  //   await db.subscriptionPayments.create({
-  //     subscriptionId: invoice.subscription,
-  //     invoiceId: invoice.id,
-  //     amountPaid: invoice.amount_paid,
-  //     date: new Date()
-  //   });
-  // }
+  return retry(async () => {
+    logger.info(`💰 Invoice payment succeeded: ${invoice.id} for $${invoice.amount_paid / 100}`);
+    
+    // Check if this is the first payment after trial
+    const isFirstPayment = invoice.billing_reason === 'subscription_cycle' && 
+                          invoice.lines && 
+                          invoice.lines.data.some(line => line.description?.includes('after trial'));
+    
+    if (db && invoice.subscription) {
+      // Update subscription payment history
+      const subscriptionPaymentsCollection = db.collection('subscriptionPayments');
+      await subscriptionPaymentsCollection.insertOne({
+        subscriptionId: invoice.subscription,
+        invoiceId: invoice.id,
+        customerId: invoice.customer,
+        amountPaid: invoice.amount_paid,
+        isFirstPaymentAfterTrial: isFirstPayment,
+        paidAt: new Date()
+      });
+      
+      // Update subscription status if needed
+      if (isFirstPayment) {
+        const subscriptionsCollection = db.collection('subscriptions');
+        await subscriptionsCollection.updateOne(
+          { stripeSubscriptionId: invoice.subscription },
+          {
+            $set: {
+              status: 'active',
+              isInTrial: false,
+              convertedFromTrial: true,
+              convertedAt: new Date()
+            }
+          }
+        );
+      }
+    }
+    
+    // Send invoice receipt email if configured
+    if (emailTransporter && invoice.customer_email) {
+      let emailSubject = "Payment Receipt";
+      let emailContent = `<h2>Payment Receipt</h2>
+                         <p>Thank you for your payment of <strong>$${invoice.amount_paid / 100}</strong>.</p>
+                         <p>Invoice ID: ${invoice.id}</p>`;
+      
+      // Add special messaging for first payment after trial
+      if (isFirstPayment) {
+        emailSubject = "Your Free Trial Has Ended - Subscription Active";
+        emailContent = `<h2>Your Free Month Trial Has Ended</h2>
+                       <p>Thank you for trying Fitness Tracker Premium! Your subscription is now active.</p>
+                       <p>You have been charged <strong>$${invoice.amount_paid / 100}</strong> for your first month.</p>
+                       <p>Your subscription will renew automatically at $1.00/month.</p>`;
+      }
+      
+      await emailTransporter.sendMail({
+        from: `"${process.env.EMAIL_FROM_NAME || 'Workout App'}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER}>`,
+        to: invoice.customer_email,
+        subject: emailSubject,
+        html: emailContent
+      });
+    }
+  }, { retries: 3 });
 }
 
 async function handleInvoicePaymentFailed(invoice) {
@@ -381,19 +439,72 @@ async function handleInvoicePaymentFailed(invoice) {
 }
 
 async function handleCheckoutSessionCompleted(session) {
-  console.log(`✅ Checkout completed: ${session.id}`);
-  
-  // Different handling based on session mode
-  if (session.mode === 'payment') {
-    // One-time payment checkout
-    // await processOrder(session);
-  } else if (session.mode === 'subscription') {
-    // Subscription checkout
-    // await activateSubscription(session.subscription);
-  }
-  
-  // Example: Fulfill order or grant access to content
-  // await fulfillOrder(session.client_reference_id, session.customer);
+  return retry(async () => {
+    logger.info(`✅ Checkout completed: ${session.id}`);
+    
+    // Different handling based on session mode
+    if (session.mode === 'payment') {
+      // One-time payment checkout
+      logger.info(`Processing one-time payment for session ${session.id}`);
+    } else if (session.mode === 'subscription') {
+      // Subscription checkout - now with trial period
+      logger.info(`New subscription started: ${session.subscription}, with 1-month free trial`);
+      
+      if (db && session.subscription) {
+        // Make sure we have the latest subscription data
+        const subscription = await stripe.subscriptions.retrieve(session.subscription);
+        
+        // Update user's subscription status
+        const usersCollection = db.collection('users');
+        if (session.customer) {
+          await usersCollection.updateOne(
+            { stripeCustomerId: session.customer },
+            { 
+              $set: { 
+                subscriptionId: session.subscription,
+                subscriptionStatus: subscription.status,
+                isInTrial: subscription.status === 'trialing',
+                trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                subscriptionPlan: "premium",
+                premiumFeatures: true,
+                subscription: {
+                  id: session.subscription,
+                  status: subscription.status,
+                  currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                  cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                  pricing: "$1.00/month after free trial",
+                  trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null
+                }
+              }
+            },
+            { upsert: true }
+          );
+        }
+      }
+      
+      // Send welcome email with trial information
+      if (emailTransporter && session.customer_email) {
+        await emailTransporter.sendMail({
+          from: `"${process.env.EMAIL_FROM_NAME || 'Workout App'}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER}>`,
+          to: session.customer_email,
+          subject: "Welcome to Fitness Tracker Premium - Your Free Month Started",
+          html: `
+            <h2>Welcome to Fitness Tracker Premium!</h2>
+            <p>Your free month trial has started. Enjoy full access to all premium features:</p>
+            <ul>
+              <li><strong>Personalized workouts</strong> based on your goals and history</li>
+              <li><strong>Advanced analytics</strong> to track your progress in detail</li>
+              <li><strong>Complete nutrition & hydration tracking</strong></li>
+              <li><strong>Data export & backup</strong> for all your fitness data</li>
+            </ul>
+            <p>After your trial ends, you'll be charged just <strong>$1.00/month</strong>.</p>
+            <p>You can cancel anytime before the trial ends and won't be charged.</p>
+            <p>We're excited to be part of your fitness journey!</p>
+          `
+        });
+      }
+    }
+  }, { retries: 3 });
 }
 
 async function handleCustomerCreated(customer) {
