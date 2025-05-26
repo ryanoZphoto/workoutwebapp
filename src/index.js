@@ -3,12 +3,15 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles.css';
 import { AppProvider } from './context/AppContext';
+import AuthGate from './components/AuthGate';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <AppProvider>
-      <App />
+      <AuthGate>
+        <App />
+      </AuthGate>
     </AppProvider>
   </React.StrictMode>
 );
