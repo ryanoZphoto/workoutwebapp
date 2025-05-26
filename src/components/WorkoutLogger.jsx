@@ -22,7 +22,8 @@ export default function WorkoutLogger() {
   });
 
   useEffect(() => {
-    if (Object.keys(weeklyData.workouts).length === 0) {
+    // Safely check if workouts exists and has no entries
+    if (!weeklyData || !weeklyData.workouts || Object.keys(weeklyData.workouts || {}).length === 0) {
       setCurrent({
         group: 'Chest',
         name: '',
@@ -32,7 +33,7 @@ export default function WorkoutLogger() {
         duration: ''
       });
     }
-  }, [weeklyData.workouts]);
+  }, [weeklyData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -40,7 +41,18 @@ export default function WorkoutLogger() {
   };
 
   const addExercise = () => {
-    const updated = { ...weeklyData };
+    // Create a safely structured updated object
+    const updated = { 
+      ...weeklyData,
+      workouts: { ...(weeklyData?.workouts || {}) } 
+    };
+    
+    // Initialize the workouts object if it doesn't exist
+    if (!updated.workouts) {
+      updated.workouts = {};
+    }
+    
+    // Initialize the muscle group array if it doesn't exist
     if (!updated.workouts[current.group]) {
       updated.workouts[current.group] = [];
     }
