@@ -769,7 +769,7 @@ export default function WorkoutRecommender() {
                   
                   <button
                     onClick={() => {
-                      if (confirm("Are you sure you want to export your workout data? This will download a JSON file.")) {
+                      if (window.confirm("Are you sure you want to export your workout data? This will download a JSON file.")) {
                         try {
                           const dataStr = JSON.stringify(weeklyData, null, 2);
                           const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -793,7 +793,7 @@ export default function WorkoutRecommender() {
                   
                   <button
                     onClick={() => {
-                      if (confirm("⚠️ WARNING: This will reset all your workout data. This cannot be undone!")) {
+                      if (window.confirm("⚠️ WARNING: This will reset all your workout data. This cannot be undone!")) {
                         try {
                           const resetData = { workouts: {}, meals: {}, hydration: 0 };
                           setWeeklyData(resetData);
