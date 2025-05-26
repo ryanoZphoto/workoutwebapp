@@ -41,6 +41,12 @@ export default function WorkoutLogger() {
   };
 
   const addExercise = () => {
+    // Validate input values before adding
+    if (!current.name.trim()) {
+      alert("Please enter an exercise name");
+      return;
+    }
+    
     // Create a safely structured updated object
     const updated = { 
       ...weeklyData,
@@ -57,12 +63,13 @@ export default function WorkoutLogger() {
       updated.workouts[current.group] = [];
     }
 
+    // Convert all values to appropriate types to ensure no objects are accidentally stored
     updated.workouts[current.group].push({
-      name: current.name,
-      sets: current.sets,
-      reps: current.reps,
-      weight: current.weight,
-      duration: current.duration
+      name: String(current.name || ''),
+      sets: current.sets ? String(current.sets) : '',
+      reps: current.reps ? String(current.reps) : '',
+      weight: current.weight ? String(current.weight) : '',
+      duration: current.duration ? String(current.duration) : ''
     });
 
     setWeeklyData(updated);
@@ -81,18 +88,40 @@ export default function WorkoutLogger() {
     const w = weeklyData.workouts;
     if (!w || Object.keys(w).length === 0) return <p className="text-gray-400 text-sm">No exercises logged yet.</p>;
 
-    return Object.entries(w).map(([group, entries]) => (
-      <div key={group} className="mb-4">
-        <h3 className="font-semibold text-blue-300">{group}</h3>
-        <ul className="pl-4 list-disc text-sm text-gray-300">
-          {entries.map((ex, i) => (
-            <li key={i}>
-              {ex.name} – {ex.sets} sets × {ex.reps} reps @ {ex.weight}lbs {ex.duration && `(for ${ex.duration}min)`}
-            </li>
-          ))}
-        </ul>
-      </div>
-    ));
+    return Object.entries(w).map(([group, entries]) => {
+      // Safety check: ensure entries is an array
+      if (!Array.isArray(entries)) {
+        console.error(`Workout entries for ${group} is not an array:`, entries);
+        return null;
+      }
+      
+      return (
+        <div key={group} className="mb-4">
+          <h3 className="font-semibold text-blue-300">{group}</h3>
+          <ul className="pl-4 list-disc text-sm text-gray-300">
+            {entries.map((ex, i) => {
+              // Type safety checks
+              if (!ex || typeof ex !== 'object') {
+                return <li key={i}>Invalid exercise data</li>;
+              }
+              
+              // Convert all values to strings to prevent object rendering
+              const name = String(ex.name || 'Unknown exercise');
+              const sets = String(ex.sets || '0');
+              const reps = String(ex.reps || '0');
+              const weight = String(ex.weight || '0');
+              const duration = ex.duration ? String(ex.duration) : null;
+              
+              return (
+                <li key={i}>
+                  {name} – {sets} sets × {reps} reps @ {weight}lbs {duration && `(for ${duration}min)`}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      );
+    });
   };
 
   return (

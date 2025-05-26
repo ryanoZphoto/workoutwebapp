@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, useState, useEffect } from 'react';
 import { AppContext } from '../context/AppContext';
 
 // Sample workout library
@@ -57,7 +57,29 @@ const workoutLibrary = {
 };
 
 export default function WorkoutRecommender() {
-  const { weeklyData } = useContext(AppContext);
+  const { weeklyData, setWeeklyData } = useContext(AppContext);
+  const [storageInfo, setStorageInfo] = useState(null);
+  
+  // Add effect to detect storage mechanism
+  useEffect(() => {
+    try {
+      // Check what storage mechanisms are available and in use
+      const storageDetails = {
+        usingLocalStorage: !!localStorage.getItem('weeklyData') || false,
+        usingSessionStorage: !!sessionStorage.getItem('weeklyData') || false,
+        hasCookies: document.cookie.includes('weeklyData'),
+        contextData: !!weeklyData,
+        netlifyIdentity: window.netlifyIdentity !== undefined
+      };
+      
+      setStorageInfo(storageDetails);
+      
+      console.log('Storage information:', storageDetails);
+      console.log('Current weeklyData:', weeklyData);
+    } catch (error) {
+      console.error('Error checking storage:', error);
+    }
+  }, [weeklyData]);
   
   // Analyze past workouts to determine appropriate level and focus
   const recommendations = useMemo(() => {
@@ -142,38 +164,101 @@ export default function WorkoutRecommender() {
   // Get today's day name
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   
+  // Ensure recommendations are valid
+  if (!recommendations || typeof recommendations !== 'object') {
+    console.error('Invalid recommendations structure:', recommendations);
+    return (
+      <div className="bg-gray-800 p-5 rounded-xl shadow-md max-w-4xl mx-auto mb-8">
+        <h2 className="text-2xl font-semibold text-white">Workout Recommendations</h2>
+        <p className="text-gray-300 mb-4">Unable to generate recommendations at this time.</p>
+      </div>
+    );
+  }
+  
+  // Ensure workouts is an array
+  const workoutsArray = Array.isArray(recommendations.workouts) ? recommendations.workouts : [];
+  const levelString = typeof recommendations.level === 'string' ? recommendations.level : 'beginner';
+  const focusNeededString = typeof recommendations.focusNeeded === 'string' ? recommendations.focusNeeded : 'general';
+  
   return (
     <div className="bg-gray-800 p-5 rounded-xl shadow-md max-w-4xl mx-auto mb-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold text-white">Workout Recommendations</h2>
         <span className="bg-blue-500 text-xs font-medium px-2.5 py-0.5 rounded-full text-white">
-          {recommendations.level}
+          {levelString}
         </span>
       </div>
       
       <p className="text-gray-300 mb-4">
-        Based on your activity, we recommend focusing on <span className="text-blue-400 font-medium">{recommendations.focusNeeded}</span> training today.
+        Based on your activity, we recommend focusing on <span className="text-blue-400 font-medium">{focusNeededString}</span> training today.
       </p>
       
       <h3 className="text-lg text-blue-300 font-medium mb-2">Suggested for {today}:</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {recommendations.workouts.map((workout, index) => (
-          <div key={index} className="bg-gray-700 rounded-lg overflow-hidden hover:bg-gray-600 transition-colors">
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h4 className="text-white font-medium">{workout.name}</h4>
-                <span className="bg-blue-600 text-xs px-2 py-1 rounded text-white">
-                  {workout.duration} min
-                </span>
+        {workoutsArray.length > 0 ? workoutsArray.map((workout, index) => {
+          if (!workout || typeof workout !== 'object') {
+            return null;
+          }
+          
+          const name = String(workout.name || 'Workout');
+          const duration = workout.duration !== undefined ? String(workout.duration) : '30';
+          const description = String(workout.description || 'No description available');
+          
+          return (
+            <div key={index} className="bg-gray-700 rounded-lg overflow-hidden hover:bg-gray-600 transition-colors">
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="text-white font-medium">{name}</h4>
+                  <span className="bg-blue-600 text-xs px-2 py-1 rounded text-white">
+                    {duration} min
+                  </span>
+                </div>
+                <p className="text-gray-400 text-sm">{description}</p>
+                <button 
+                  onClick={() => {
+                    // Add workout to log functionality
+                    try {
+                      const updated = { ...weeklyData };
+                      
+                      if (!updated.workouts) {
+                        updated.workouts = {};
+                      }
+                      
+                      // Map workout type to a muscle group
+                      const muscleGroup = recommendations.focusNeeded === 'strength' ? 
+                        'Full Body' : (recommendations.focusNeeded === 'flexibility' ? 'Mobility' : 'Cardio');
+                      
+                      if (!updated.workouts[muscleGroup]) {
+                        updated.workouts[muscleGroup] = [];
+                      }
+                      
+                      updated.workouts[muscleGroup].push({
+                        name: name,
+                        sets: '1',
+                        reps: '1',
+                        weight: '0',
+                        duration: duration,
+                        type: recommendations.focusNeeded
+                      });
+                      
+                      setWeeklyData(updated);
+                      alert(`Added ${name} to your workout log!`);
+                    } catch (error) {
+                      console.error('Error adding workout to log:', error);
+                    }
+                  }}
+                  className="mt-3 bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded transition-colors w-full">
+                  Add to Log
+                </button>
               </div>
-              <p className="text-gray-400 text-sm">{workout.description}</p>
-              <button className="mt-3 bg-blue-500 hover:bg-blue-600 text-white text-sm py-1 px-3 rounded transition-colors w-full">
-                Add to Log
-              </button>
             </div>
+          );
+        }) : (
+          <div className="col-span-3">
+            <p className="text-gray-400 text-center">No workout recommendations available yet. Try logging a few workouts first.</p>
           </div>
-        ))}
+        )}
       </div>
       
       <div className="bg-gray-700 mt-4 p-3 rounded text-sm text-gray-400">
@@ -183,6 +268,22 @@ export default function WorkoutRecommender() {
           </svg>
           Recommendations adapt based on your logged workouts and progress.
         </p>
+        {storageInfo && (
+          <div className="mt-2 p-2 bg-gray-800 rounded overflow-auto max-h-32">
+            <p className="text-xs font-mono">Storage Details:</p>
+            <pre className="text-xs overflow-auto">
+              {JSON.stringify(storageInfo, null, 2)}
+            </pre>
+            <button 
+              onClick={() => {
+                console.log('Current Context Data:', weeklyData);
+                alert('Storage info logged to console. Open browser developer tools to view.');
+              }}
+              className="mt-1 text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded">
+              Debug Data
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
