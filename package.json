@@ -19,6 +19,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-helmet": "^6.1.0",
+    "react-router-dom": "^6.22.0",
     "recharts": "^2.10.3",
     "stripe": "^18.1.1",
     "web-vitals": "^2.1.4",
@@ -26,6 +27,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "prebuild": "node netlify-build-debug.js",
     "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
