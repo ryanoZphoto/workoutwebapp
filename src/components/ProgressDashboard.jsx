@@ -9,12 +9,24 @@ import { AppContext } from '../context/AppContext';
 export default function ProgressDashboard() {
   const { weeklyData } = useContext(AppContext);
   
-  // Create workout data for visualization
-  const workoutData = Object.entries(weeklyData.workouts || {}).map(([day, data]) => ({
-    name: day,
-    duration: data.duration || 0,
-    intensity: data.intensity || 0,
-  }));
+  // Create workout data for visualization with safe data access
+  const workoutData = (() => {
+    if (!weeklyData || typeof weeklyData !== 'object' || !weeklyData.workouts) {
+      return [];
+    }
+    
+    return Object.entries(weeklyData.workouts).map(([day, data]) => {
+      // Ensure data is a valid object
+      if (!data || typeof data !== 'object') {
+        return { name: day, duration: 0, intensity: 0 };
+      }
+      return {
+        name: day,
+        duration: data.duration || 0,
+        intensity: data.intensity || 0,
+      };
+    });
+  })();
 
   // Calculate total water intake for the week - handle both array and legacy number format
   const totalWater = (() => {
