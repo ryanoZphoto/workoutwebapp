@@ -5,7 +5,20 @@ module.exports = {
     "./public/index.html"
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        // High contrast colors for accessibility
+        'high-contrast-text': '#000',
+        'high-contrast-bg': '#fff',
+        'focus-ring': '#2563eb',
+      },
+      spacing: {
+        // Larger touch targets for accessibility
+        'touch-target': '44px',
+      },
+    },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'),
+  ],
 }

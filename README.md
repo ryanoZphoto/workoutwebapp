@@ -2,6 +2,26 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Accessibility Features
+
+This web application is built with accessibility in mind:
+
+- Keyboard navigation support throughout the application
+- ARIA attributes for improved screen reader compatibility
+- Sufficient color contrast for text and interactive elements
+- Form elements with proper labels
+- Focus management for interactive elements
+- Responsive design that works at different zoom levels
+
+### Accessibility Testing
+
+To check for accessibility issues:
+
+1. Run `npm run lint:a11y` to perform static code analysis for accessibility issues
+2. Use browser extensions like axe DevTools to test the running application
+3. Test with screen readers (VoiceOver, NVDA, JAWS)
+4. Navigate the app using only the keyboard to ensure full functionality
+
 ## Available Scripts
 
 In the project directory, you can run:

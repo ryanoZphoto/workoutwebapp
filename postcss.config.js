@@ -43,3 +43,9 @@
     "tailwindcss": "^3.3.5"
   }
 }
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
