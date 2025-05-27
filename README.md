@@ -49,6 +49,18 @@ Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
+## Member Login (Demo Paywall)
+
+The app now includes a minimal authentication gate. Set a password using an environment variable before running or building the app:
+
+```bash
+export REACT_APP_PASSWORD=yourSecret
+npm start
+```
+
+Deployments (e.g., Netlify) should also define `REACT_APP_PASSWORD`. Users must enter this password to access the app. Replace this with a real authentication and payment system (like Netlify Identity + Stripe) when you are ready to charge for access.
+
+
 ### `npm run eject`
 
 **Note: this is a one-way operation. Once you `eject`, you can't go back!**
